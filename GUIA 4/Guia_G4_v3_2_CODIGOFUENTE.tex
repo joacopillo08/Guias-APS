@@ -1,0 +1,341 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{parskip}
+\usepackage{circuitikz}
+\usepackage{tikz}
+\usepackage{listings}
+\usetikzlibrary{calc}
+
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\definecolor{unsam}{RGB}{87, 122, 160}
+\definecolor{lightgray}{RGB}{245, 245, 245}
+\definecolor{conceptbg}{RGB}{235, 245, 255}
+\definecolor{warnbg}{RGB}{255, 248, 230}
+\definecolor{warnline}{RGB}{200, 150, 0}
+\definecolor{codegray}{RGB}{250,250,250}
+\definecolor{codeblue}{RGB}{0,80,160}
+\definecolor{codegreen}{RGB}{0,120,0}
+\definecolor{codecomment}{RGB}{100,100,100}
+
+\lstdefinestyle{pythonstyle}{
+  language=Python, backgroundcolor=\color{codegray},
+  basicstyle=\footnotesize\ttfamily, commentstyle=\color{codecomment},
+  keywordstyle=\color{codeblue}\bfseries, stringstyle=\color{codegreen},
+  numberstyle=\tiny\color{gray}, breaklines=true, captionpos=b,
+  numbers=left, numbersep=5pt, showstringspaces=false, tabsize=4,
+  frame=single, rulecolor=\color{gray!40}, xleftmargin=15pt, xrightmargin=5pt,
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small \textcolor{unsam}{\textbf{An\'alisis y Procesamiento de Se\~nales}}}
+\fancyhead[R]{\small \textcolor{unsam}{UNSAM --- Ciencia y Tecnolog\'ia}}
+\fancyfoot[C]{\small \thepage}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\newcommand{\sechdr}[1]{%
+  \noindent\colorbox{unsam}{%
+    \parbox{\dimexpr\textwidth\relax}{%
+      \vspace{4pt}\hspace{6pt}{\large\bfseries\color{white}#1}\vspace{4pt}%
+    }%
+  }%
+}
+\titleformat{\section}[block]{\normalsize}{}{0em}{\sechdr}
+\titlespacing*{\section}{0pt}{1.8em}{0.9em}
+
+\newmdenv[backgroundcolor=conceptbg,linecolor=unsam,linewidth=1.5pt,
+  innerleftmargin=12pt,innerrightmargin=12pt,innertopmargin=10pt,
+  innerbottommargin=10pt,skipabove=8pt,skipbelow=8pt]{conceptbox}
+\newmdenv[backgroundcolor=lightgray,linecolor=gray!35,linewidth=0.8pt,
+  innerleftmargin=14pt,innerrightmargin=14pt,innertopmargin=11pt,
+  innerbottommargin=11pt,skipabove=7pt,skipbelow=7pt]{exbox}
+\newmdenv[backgroundcolor=warnbg,linecolor=warnline,linewidth=1.2pt,
+  innerleftmargin=12pt,innerrightmargin=12pt,innertopmargin=8pt,
+  innerbottommargin=8pt,skipabove=6pt,skipbelow=6pt]{hintbox}
+
+\begin{document}
+
+% ===== PORTADA =====
+\begin{center}
+  \includegraphics[width=0.28\textwidth]{logounsam}\\[0.6cm]
+  {\LARGE\bfseries\color{unsam} Gu\'ia G4}\\[0.25cm]
+  {\large\bfseries Filtros Anal\'ogicos}\\[0.15cm]
+  {\color{unsam}\rule{0.6\linewidth}{1.2pt}}
+\end{center}
+\vspace{0.3cm}
+
+\begin{conceptbox}
+\textbf{Ideas clave} \hfill \small\textit{Holton, Cap.~8}
+\medskip
+
+Un \textbf{filtro anal\'ogico} es un sistema LTI en tiempo continuo.
+Su comportamiento queda descrito por la \textbf{funci\'on de transferencia}:
+$$H(s) = \frac{Y(s)}{X(s)}, \qquad s = \sigma + j\Omega$$
+La \textbf{respuesta en frecuencia} se obtiene evaluando sobre el eje imaginario: $H(j\Omega)$.
+Para que el sistema sea \textbf{estable}: todos los polos deben estar en el \textbf{semiplano izquierdo} ($\mathrm{Re}(s)<0$).
+
+\smallskip
+\textbf{M\'etodo gr\'afico (polos y ceros):} el m\'odulo y la fase se leen \emph{geom\'etricamente} desde el plano $s$:
+$$|H(j\Omega)| = \frac{\prod \text{distancias a los ceros}}{\prod \text{distancias a los polos}},
+\qquad \angle H(j\Omega) = \sum\angle\,\text{ceros} - \sum\angle\,\text{polos}$$
+Cada distancia y \'angulo se miden desde el punto $s=j\Omega$ hasta cada singularidad.
+\end{conceptbox}
+
+\section{Circuitos: Familias de Filtros}
+
+\begin{exbox}
+\textbf{Ejercicio 1.} A continuaci\'on se muestran cuatro topolog\'ias de filtros.
+Para cada circuito: \textbf{(i)} derive $H(s) = V2(s)/V1(s)$ usando divisor de impedancias,
+\textbf{(ii)} identifique polos y ceros, \textbf{(iii)} indique qu\'e tipo de filtro es
+(pasa-bajos, pasa-altos o pasa-banda).
+\medskip
+% ---- Fila 1: pasa-bajos ----
+\noindent\textbf{(a) Pasa-bajos: $R$ serie, $C$ paralelo (cl\'asico RC)}
+
+\begin{center}
+\begin{circuitikz}[american, scale=0.82]
+  % V1 forzado a la izquierda (^)
+  \draw (0,-1.8) to[open, voltage=straight, v^=$V1$] (0,0);
+
+  \draw (0,0) to[short,o-]
+        (0.3,0) to[R, l=$R$] (3,0)
+        to[short,-o] (4.5,0);
+        
+  % V2 forzado a la derecha (_)
+  \draw (4.5,-1.8) to[open, voltage=straight, v_=$V2$] (4.5,0);
+
+  \draw (3,0) to[C, l=$C$, *-] (3,-1.8)
+        to[short] (0,-1.8)
+        to[short, -o] (0,-1.8);
+  \draw (4.5,-1.8) to[short, o-] (3,-1.8);
+  \node[left] at (0,-1.8) {$0$};
+\end{circuitikz}
+\end{center}
+
+\medskip
+\noindent\textbf{(b) Pasa-bajos: $L$ serie, $RC$ paralelo}
+
+\begin{center}
+\begin{circuitikz}[american, scale=0.82]
+  % V1 forzado a la izquierda
+  \draw (0,-1.8) to[open, voltage=straight, v^=$V1$] (0,0);
+
+  % Top rail: x -> L -> output
+  \draw (0,0) to[short,o-]
+        (0.3,0) to[L, l=$L$] (3.3,0)
+        to[short,-o] (6,0);
+        
+  % V2 forzado a la derecha
+  \draw (6,-1.8) to[open, voltage=straight, v_=$V2$] (6,0);
+
+  % R and C in parallel between node (4,0) and bottom rail
+  \draw (4,0) to[R, l=$R$] (4,-1.8);
+  \draw (5.2,0) to[C, l=$C$] (5.2,-1.8);
+  \draw (3.3,0) to[short] (5.2,0);
+  % Bottom rail
+  \draw (0,-1.8) to[short, o-] (0,-1.8)
+        to[short] (5.2,-1.8);
+  \draw (6,-1.8) to[short, o-] (5.2,-1.8);
+  \node[left] at (0,-1.8) {$0$};
+\end{circuitikz}
+\end{center}
+
+\medskip
+\noindent\textbf{(c) Pasa-altos: $C$ serie, $RL$ paralelo}
+
+\begin{center}
+\begin{circuitikz}[american, scale=0.82]
+  % V1 forzado a la izquierda
+  \draw (0,-1.8) to[open, voltage=straight, v^=$V1$] (0,0);
+
+  \draw (0,0) to[short,o-]
+        (0.3,0) to[C, l=$C$] (3.3,0)
+        to[short,-o] (6,0);
+        
+  % V2 forzado a la derecha
+  \draw (6,-1.8) to[open, voltage=straight, v_=$V2$] (6,0);
+
+  \draw (4,0) to[R, l=$R$] (4,-1.8);
+  \draw (5.2,0) to[L, l=$L$] (5.2,-1.8);
+  \draw (3.3,0) to[short] (5.2,0);
+  \draw (0,-1.8) to[short,o-] (0,-1.8) to[short] (5.2,-1.8);
+  \draw (6,-1.8) to[short,o-] (5.2,-1.8);
+  \node[left] at (0,-1.8) {$0$};
+\end{circuitikz}
+\end{center}
+
+\medskip
+\noindent\textbf{(d) Pasa-banda: $LC$ serie, $R$ paralelo}
+
+\begin{center}
+\begin{circuitikz}[american, scale=0.82]
+  % V1 forzado a la izquierda
+  \draw (0,-1.8) to[open, voltage=straight, v^=$V1$] (0,0);
+
+  \draw (0,0) to[short,o-]
+        (0.3,0) to[L, l=$L$] (2.5,0)
+        to[C, l=$C$] (4.5,0)
+        to[short,-o] (6.5,0);
+        
+  % V2 forzado a la derecha
+  \draw (6.5,-1.8) to[open, voltage=straight, v_=$V2$] (6.5,0);
+
+  \draw (5.2,0) to[R, l=$R$] (5.2,-1.8);
+  \draw (4.5,0) to[short] (5.2,0);
+  \draw (0,-1.8) to[short,o-] (0,-1.8) to[short] (5.2,-1.8);
+  \draw (6.5,-1.8) to[short,o-] (5.2,-1.8);
+  \node[left] at (0,-1.8) {$0$};
+\end{circuitikz}
+\end{center}
+\end{exbox}
+
+\section{Segundo Orden: $Q$, $\omega_0$ y M\'etodo Gr\'afico}
+
+\begin{exbox}
+\textbf{Ejercicio 2.} Un filtro pasa-bajos de segundo orden tiene la funci\'on de transferencia:
+$$H(s) = \frac{\omega_0^2}{s^2 + \dfrac{\omega_0}{Q}\,s + \omega_0^2}$$
+con $f_0 = 1\,\text{kHz}$ y $Q = 5$.
+
+\begin{enumerate}[label=\textbf{\alph*)}]
+  \item Calcule los dos polos $s_{1,2}$ con:
+  $$s_{1,2} = -\frac{\omega_0}{2Q} \pm j\,\omega_0\sqrt{1 - \frac{1}{4Q^2}}$$
+  Verifique que tienen $\mathrm{Re}(s) < 0$.
+
+  \item Grafique los polos en el plano $s$. Marque su m\'odulo $|s_k|$ y su \'angulo respecto al
+  eje real negativo. ?`C\'omo se relaciona $|s_k|$ con $\omega_0$?
+
+  \item \textbf{M\'etodo gr\'afico}: para $\Omega = 0$, $\Omega = \omega_0/2$ y $\Omega = \omega_0$,
+  razone cualitativamente si $|H(j\Omega)|$ crece o cae usando la geometr\'ia de las distancias.
+  No hace falta calcular, solo describir.
+
+  \item ?`Qu\'e le pasa a la respuesta si se aumenta $Q$ (polos se acercan al eje imaginario)?
+  ?`Aparece un pico? ?`Eso es deseable en un filtro pasa-bajos?
+
+\end{enumerate}
+\end{exbox}
+
+\section{Filtro Butterworth: Polos y Orden}
+
+\begin{conceptbox}
+\textbf{Filtro Butterworth} \hfill \small\textit{Holton, Secci\'on 8.2.2}
+
+\smallskip
+Caracter\'istica: \textbf{m\'axima planicidad} en la banda de paso (sin rizado).
+Su m\'odulo cuadrado es:
+$$|H(j\Omega)|^2 = \frac{1}{1 + \left(\Omega/\Omega_c\right)^{2N}}$$
+Los polos se distribuyen uniformemente sobre un c\'irculo de radio $\Omega_c$ en el plano $s$.
+Se retienen los $N$ del \textbf{semiplano izquierdo}. Posici\'on de los polos:
+$$s_k = \Omega_c\,e^{j\pi(2k+N+1)/(2N)}, \qquad k = 0,\ldots,N-1
+\quad \Rightarrow \quad |s_k| = \Omega_c \text{ (siempre)}$$
+\end{conceptbox}
+
+\begin{exbox}
+\textbf{Ejercicio 3.} Butterworth normalizado ($\Omega_c = 1\,\text{rad/s}$), orden $N = 2$.
+
+\begin{enumerate}[label=\textbf{\alph*)}]
+  \item Calcule $s_0$ y $s_1$. Expr\'eselos como $a + jb$.
+
+  \item Grafique en el plano $s$. Verifique: (i)~m\'odulo~$= 1$, (ii)~semiplano izquierdo.
+
+  \item Escriba $H(s) = 1\,/\,[(s-s_0)(s-s_1)]$, expanda el denominador y compare con
+  la forma est\'andar. Identifique $\omega_0$ y $Q$.
+  ?`Cu\'al es el valor de $Q$ para el Butterworth de orden~2?
+
+  \item Usando el m\'etodo gr\'afico, explique por qu\'e $|H(j\Omega)|$ cae \emph{sin pico}
+  al alejarse de $\Omega=0$. ?`Qu\'e geometr\'ia de los polos produce eso?
+\end{enumerate}
+\end{exbox}
+
+\section{Dise\~no con Plantilla}
+
+\begin{conceptbox}
+\textbf{Plantilla de dise\~no pasa-bajos} \hfill \small\textit{Holton, Secci\'on 8.1}
+
+\smallskip
+Cuatro par\'ametros definen la plantilla: $f_p$ (frecuencia de paso),
+$T_p = -\alpha_p$ (atenuaci\'on m\'ax.\ en banda de paso [dB, valor negativo]),
+$f_s$ (frecuencia de rechazo) y $T_s = -\alpha_s$ (atenuaci\'on m\'in.\ en banda de rechazo [dB]).
+
+\smallskip
+Orden m\'inimo para Butterworth (Holton, ec.~8.10):
+$$N = \left\lceil \frac{\log_{10}(L)}{\log_{10}(\xi)} \right\rceil,
+\quad \xi = \frac{f_s}{f_p},\quad L = \frac{\varepsilon_s}{\varepsilon_p},\quad
+\varepsilon_p = \sqrt{10^{|T_p|/10}-1},\quad \varepsilon_s = \sqrt{10^{|T_s|/10}-1}$$
+\end{conceptbox}
+
+\begin{exbox}
+\textbf{Ejercicio 4.} Determine el orden m\'inimo $N$ de Butterworth para cada caso.
+Calcule $\xi$, $\varepsilon_p$, $\varepsilon_s$, $L$ y aplique la f\'ormula.
+
+\medskip
+\textbf{a)}\quad $f_p = 1\,\text{kHz}$, $T_p = -3\,\text{dB}$,\quad$f_s = 2\,\text{kHz}$, $T_s = -40\,\text{dB}$.
+
+\medskip
+\textbf{b)}\quad $f_p = 1\,\text{kHz}$, $T_p = -3\,\text{dB}$,\quad$f_s = 3\,\text{kHz}$, $T_s = -40\,\text{dB}$.
+
+\medskip
+\textbf{c)}\quad $f_p = 1\,\text{kHz}$, $T_p = -1\,\text{dB}$,\quad$f_s = 2\,\text{kHz}$, $T_s = -60\,\text{dB}$.
+
+\medskip
+Luego responda: \textbf{(i)}~?`Cu\'al requiere mayor orden? ?`Por qu\'e?
+\textbf{(ii)}~Al pasar de~\textbf{a)} a~\textbf{b)}, se ampli\'o la banda de transici\'on. ?`C\'omo afect\'o a $N$?
+\end{exbox}
+
+\section{Ejercicio Integrador: Filtro Anti-Replicado + ADC}
+
+\begin{hintbox}
+\textbf{Contexto:} un filtro \emph{anti-aliasing} (o anti-replicado) es un filtro pasa-bajos
+anal\'ogico que se coloca \emph{antes} del ADC para garantizar que no lleguen componentes
+por encima de $f_s/2$ (Nyquist). Elegir bien su orden $N$ y su $f_c$ es cr\'itico:
+si el filtro aten\'ua poco, el ADC recibe se\~nal solapada; si aten\'ua demasiado pronto,
+se pierde parte de la banda \'util. Adem\'as, el n\'umero de bits del ADC pone un l\'imite
+pr\'actico a la SNR y por tanto a la atenuaci\'on \emph{m\'inima} que se necesita fuera de banda.
+\end{hintbox}
+
+\begin{exbox}
+\textbf{Ejercicio 5. Problema integrador.}
+Se desea digitalizar una se\~nal de sensor de temperatura con las siguientes especificaciones:
+\begin{itemize}[noitemsep]
+  \item[\textbf{i.}] Se\~nal con ancho de banda m\'aximo de $500\,\text{Hz}$.
+  \item[\textbf{ii.}] Se\~nal a partir de $f = 2\,\text{kHz}$ con atenuaci\'on m\'inima de $24\,\text{dB}$.
+  \item[\textbf{iii.}] El filtro anti-replicado debe tener m\'axima planicidad en la banda de paso.
+  \item[\textbf{iv.}] ADC de 8~bits, rango de entrada $-5\,\text{V}$ a $+5\,\text{V}$.
+\end{itemize}
+
+\begin{enumerate}[label=\textbf{(\alph*)}]
+  \item \textbf{Orden m\'inimo del filtro.}
+  Identifique qu\'e tipo de filtro corresponde al requisito de ``m\'axima planicidad (item~c).
+  Luego, usando $f_p = 500\,\text{Hz}$ y $T_p = -3\,\text{dB}$ como borde de banda de paso,
+  y $f_s = 2\,\text{kHz}$, $T_s = -24\,\text{dB}$, calcule el orden m\'inimo $N$.
+
+  \item \textbf{Frecuencia de corte $f_c$.}
+  Una vez obtenido $N$, calcule la frecuencia de corte $\Omega_c$ que hace que $|H(j\Omega_p)|$
+  sea exactamente $T_p = -3\,\text{dB}$ (Holton, ec.~8.11):
+  $$\Omega_c = \Omega_p \cdot \varepsilon_p^{-1/N}$$
+  Expr\'ese $f_c$ en Hz. ?`Es $f_c$ mayor o menor que $f_p = 500\,\text{Hz}$? ?`Por qu\'e?
+
+  \item \textbf{Frecuencia de muestreo m\'inima $f_s$.}
+  El teorema de Nyquist pide $f_s > 2 f_{\max}$, pero en la pr\'actica se deja margen.
+  Proponga una frecuencia de muestreo razonable $f_s$ sabiendo que la banda \'util llega
+  hasta $500\,\text{Hz}$ y que el filtro ya aten\'ua $24\,\text{dB}$ a partir de $2\,\text{kHz}$.
+  Justifique su elecci\'on.
+
+  \item \textbf{Paso de cuantizaci\'on del ADC.}
+  Para el ADC de 8~bits con rango $V_{FS} = 10\,\text{V}$ ($-5$ a $+5\,\text{V}$),
+  calcule el paso de cuantizaci\'on $\Delta V = V_{FS}/2^N$ y la SNR te\'orica
+  (Holton, ec.~8.24): $\mathrm{SNR} \approx 6{,}02 \cdot N_{\text{bits}} + 1{,}76\,\text{dB}$.
+  ?`Tiene sentido usar un filtro con $24\,\text{dB}$ de atenuaci\'on m\'inima para este ADC?
+  Hint: compare $T_s = -24\,\text{dB}$ con la SNR calculada.
+\end{enumerate}
+\end{exbox}
+
+\end{document}

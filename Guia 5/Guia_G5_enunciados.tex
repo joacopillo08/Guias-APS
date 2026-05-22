@@ -1,0 +1,388 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{mdframed}
+\usepackage{hyperref}
+
+\geometry{top=2.5cm, bottom=2.5cm, left=2.8cm, right=2.8cm}
+
+\definecolor{enunbg}{RGB}{240,240,250}
+\definecolor{enunline}{RGB}{80,80,150}
+\definecolor{defbg}{RGB}{255,250,235}
+\definecolor{defline}{RGB}{180,140,40}
+\definecolor{codegray}{RGB}{250,250,250}
+\definecolor{codeblue}{RGB}{0,80,160}
+\definecolor{codegreen}{RGB}{0,120,0}
+\definecolor{codecomment}{RGB}{100,100,100}
+
+\lstdefinestyle{pystyle}{
+  language=Python, backgroundcolor=\color{codegray},
+  basicstyle=\footnotesize\ttfamily, commentstyle=\color{codecomment},
+  keywordstyle=\color{codeblue}\bfseries, stringstyle=\color{codegreen},
+  numberstyle=\tiny\color{gray}, breaklines=true,
+  numbers=left, numbersep=5pt, showstringspaces=false, tabsize=4,
+  frame=single, rulecolor=\color{gray!40}, xleftmargin=12pt,
+}
+
+\newmdenv[backgroundcolor=enunbg, linecolor=enunline, linewidth=1pt,
+  innerleftmargin=12pt, innerrightmargin=12pt, innertopmargin=8pt,
+  innerbottommargin=8pt, skipabove=8pt, skipbelow=8pt]{enun}
+
+\newmdenv[backgroundcolor=defbg, linecolor=defline, linewidth=1pt,
+  innerleftmargin=12pt, innerrightmargin=12pt, innertopmargin=8pt,
+  innerbottommargin=8pt, skipabove=8pt, skipbelow=8pt]{defbox}
+
+\title{\textbf{Gu\'ia G5 --- Ventanas y Estimaci\'on Espectral}\\[0.2cm]
+       \large An\'alisis y Procesamiento de Se\~nales --- UNSAM}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Antes de arrancar}
+
+Esta gu\'ia cierra todo lo que vimos sobre an\'alisis espectral en se\~nales finitas:
+ventanas, periodograma, Bartlett, Welch.
+Los ejercicios alternan preguntas conceptuales con pr\'actica num\'erica.
+Las referencias al Holton son al cap\'itulo 14.
+
+% =========================================================
+\section*{Ejercicio 1: ¿Cu\'ando aparece desparramo espectral?}
+
+\begin{enun}
+\textbf{a)} El desparramo espectral aparece en \emph{dos} situaciones distintas
+al calcular la DFT de un bloque finito de se\~nal.
+Indique cu\'ales son las dos situaciones.
+
+\textbf{b)} Mire la Figura~14.6 del Holton (las cuatro ventanas: rectangular,
+Hamming, Hann y Blackman).
+?`Qu\'e dos par\'ametros de la ventana se ven en esa figura?
+?`Cu\'al de ellos est\'a relacionado con cada una de las dos situaciones del punto a)?
+
+\textbf{c)} Para $x[n] = \cos(2\pi \cdot 205 \cdot n/f_s)$ con $f_s = 1000$~Hz
+y $N = 100$ muestras, calcule:
+\begin{itemize}[noitemsep]
+  \item El espaciado de bins $\Delta f = f_s / N$.
+  \item El bin te\'orico al que corresponde 205~Hz ($k = f_0 \cdot N / f_s$).
+  \item ?`Cae justo en un bin entero?
+\end{itemize}
+Corra el c\'odigo del final del ejercicio y mire el espectro: ?`d\'onde aparece
+energ\'ia adem\'as del pico?
+\end{enun}
+
+\begin{lstlisting}[style=pystyle, caption={Visualizaci\'on r\'apida del desparramo}]
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.signal.windows as spsw
+
+fs = 1000
+N  = 100
+n  = np.arange(N)
+x  = np.cos(2*np.pi * 205 * n / fs)
+
+freqs = np.fft.rfftfreq(N, d=1/fs)
+
+# Sin ventana (rectangular) vs Hann
+for nombre, w in [("Rectangular", np.ones(N)),
+                  ("Hann", spsw.hann(N, sym=False))]:
+    X = np.fft.rfft(x * w) / N
+    plt.figure(figsize=(8, 3))
+    plt.plot(freqs, 20*np.log10(np.abs(X) + 1e-12), label=nombre)
+    plt.axvline(205, color="red", linestyle="--", label="205 Hz real")
+    plt.xlabel("Frecuencia [Hz]")
+    plt.ylabel("|X(f)| [dB]")
+    plt.title(f"Espectro con ventana {nombre}")
+    plt.ylim(-80, 0)
+    plt.grid(True); plt.legend(); plt.tight_layout()
+plt.show()
+\end{lstlisting}
+
+% =========================================================
+\section*{Ejercicio 2: Tabla de ventanas}
+
+\begin{enun}
+La siguiente tabla (Holton, Sec.~14.1.2) resume las ventanas m\'as usadas:
+
+\begin{center}
+\small
+\begin{tabular}{lccl}
+\toprule
+\textbf{Ventana} & \textbf{Ancho l\'ob.\ ppal.} & \textbf{1\textsuperscript{er} l\'ob.\ lat.} & \textbf{Para qu\'e sirve} \\
+\midrule
+Rectangular     & $4\pi/N$   & $-13$~dB  & m\'axima resoluci\'on \\
+Hann            & $8\pi/N$   & $-32$~dB  & uso general \\
+Hamming         & $8\pi/N$   & $-43$~dB  & se\~nales d\'ebiles cercanas \\
+Blackman-Harris & $12\pi/N$  & $-92$~dB  & se\~nales muy d\'ebiles \\
+Flattop         & $\approx 18\pi/N$ & $-93$~dB & medici\'on de amplitud \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{enun}
+
+\begin{defbox}
+\textbf{Definiciones que vamos a usar:}
+\begin{itemize}[noitemsep]
+  \item \textbf{Ancho del l\'obulo principal}: ancho en frecuencia del pico
+    central de la ventana. M\'as estrecho $=$ mejor resoluci\'on.
+  \item \textbf{Nivel del primer l\'obulo lateral} (en dB): qu\'e tan abajo
+    est\'a el primer ``bulto'' a los costados del pico, medido respecto a la
+    cima del pico (que est\'a en 0~dB). Cuanto m\'as negativo, mejor.
+  \item \textbf{Tapar una se\~nal d\'ebil}: cuando tengo dos se\~nales de
+    distinta amplitud en frecuencias distintas, los l\'obulos laterales
+    de la se\~nal fuerte pueden ser m\'as altos que el pico de la se\~nal
+    d\'ebil, haciendo imposible verla en el espectro.
+    Es como querer ver una vela al lado de un reflector.
+\end{itemize}
+\end{defbox}
+
+\begin{enun}
+\textbf{a)} Para $f_s = 8000$~Hz y $N = 800$, calcule la resoluci\'on
+m\'inima en Hz para cada ventana. Use:
+\[
+  \Delta f_{\min} = \frac{\Delta\omega}{2\pi} \cdot f_s
+\]
+?`Cu\'al de las ventanas permite separar dos tonos a $50$~Hz de distancia?
+
+\textbf{b)} Tengo una se\~nal con un pico fuerte en $0$~dB y un pico d\'ebil
+en $-40$~dB en otra frecuencia. Para cada ventana de la tabla, decida si los
+l\'obulos laterales del pico fuerte \emph{tapan} al pico d\'ebil.
+(Use directamente la columna del primer l\'obulo lateral).
+
+\textbf{c)} La ventana \textbf{Flattop} tiene el l\'obulo principal m\'as ancho
+de todas, lo cual deber\'ia ser malo. Sin embargo se usa mucho en metrolog\'ia.
+?`Por qu\'e? ?`Qu\'e propiedad de su l\'obulo principal la hace especial?
+\end{enun}
+
+% =========================================================
+\section*{Ejercicio 3: Sesgo y varianza}
+
+\begin{enun}
+\textbf{a)} Defina con sus propias palabras:
+\begin{itemize}[noitemsep]
+  \item ?`Qu\'e es el \emph{sesgo} de un estimador?
+  \item ?`Qu\'e es la \emph{varianza} de un estimador?
+  \item ?`Qu\'e quiere decir que un estimador sea \emph{consistente}?
+\end{itemize}
+
+\textbf{b)} En la TS4 se estudia el estimador de amplitud
+$\hat{a}_1 = |X_w^i(\Omega_0)|$ donde la frecuencia real $\Omega_1$ tiene
+un peque\~no desv\'io aleatorio respecto a $\Omega_0$.
+
+Para cada propiedad pedida, indique qu\'e ventana convendr\'ia usar
+y por qu\'e:
+
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Quiero estimar... & Conviene la ventana... \\
+\midrule
+Amplitud con poco sesgo            & \rule{4cm}{0.3pt} \\
+Frecuencia con poca varianza       & \rule{4cm}{0.3pt} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{c)} ?`Existe una ventana que sea \'optima para ambas cosas?
+?`Por qu\'e s\'i o por qu\'e no?
+\end{enun}
+
+% =========================================================
+\section*{Ejercicio 4: Tipo parcial --- Elecci\'on de ventana, $N$ y $f_s$}
+
+\begin{enun}
+Se tiene una se\~nal compuesta por:
+\begin{itemize}[noitemsep]
+  \item Una senoidal de \textbf{$0$~dB} en $f_1 = 1000$~Hz.
+  \item Una cosenoidal de \textbf{$-40$~dB} en $f_2 = 1050$~Hz.
+  \item Ruido gaussiano de fondo de $-60$~dB.
+\end{itemize}
+Quiero ver ambas se\~nales separadas en el espectro.
+
+Complete la siguiente tabla decidiendo, para cada ventana, si sirve o no
+para resolver el problema. Justifique brevemente.
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+Ventana & $N_{\min}$ p/ resolver & ?`Detecta $-40$~dB? & ?`Sirve? \\
+\midrule
+Rectangular     & \rule{2cm}{0.3pt} & \rule{1cm}{0.3pt} & \rule{1.5cm}{0.3pt} \\
+Hann            & \rule{2cm}{0.3pt} & \rule{1cm}{0.3pt} & \rule{1.5cm}{0.3pt} \\
+Hamming         & \rule{2cm}{0.3pt} & \rule{1cm}{0.3pt} & \rule{1.5cm}{0.3pt} \\
+Blackman-Harris & \rule{2cm}{0.3pt} & \rule{1cm}{0.3pt} & \rule{1.5cm}{0.3pt} \\
+Flattop         & \rule{2cm}{0.3pt} & \rule{1cm}{0.3pt} & \rule{1.5cm}{0.3pt} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Use $f_s = 8000$~Hz. La condici\'on de resoluci\'on es
+$\Delta f_{\min} < 50$~Hz (separaci\'on entre las dos se\~nales).
+
+\textbf{Tip:} para calcular $N_{\min}$, ponga
+$\Delta\omega / (2\pi) \cdot f_s < 50$ y despeje $N$.
+\end{enun}
+
+% =========================================================
+\section*{Ejercicio 5: Periodograma, Bartlett y Welch}
+
+\begin{enun}
+En las clases vimos tres m\'etodos no param\'etricos para estimar la
+densidad espectral de potencia (PSD) de una se\~nal:
+
+\smallskip
+\textbf{Periodograma:} $\hat{P}(e^{j\omega}) = \frac{1}{N}|X_N(e^{j\omega})|^2$.
+Es la DFT al cuadrado, normalizada.
+
+\textbf{Bartlett:} parte la se\~nal en $K$ bloques de longitud $L$
+\emph{sin solapar}, calcula el periodograma de cada uno, y los promedia.
+
+\textbf{Welch:} igual que Bartlett pero los bloques s\'i se solapan
+(t\'ipicamente 50\%) y cada bloque se enventana antes de hacer la FFT.
+
+\smallskip
+\textbf{a)} ?`Por qu\'e el periodograma ``no es un buen estimador''?
+Pista: pensar en sesgo y varianza, ?`mejoran al aumentar $N$?
+
+\textbf{b)} ?`Por qu\'e Bartlett reduce la varianza? ?`Qu\'e sacrifica para
+lograrlo?
+
+\textbf{c)} ?`Por qu\'e Welch es mejor que Bartlett?
+Mencione las dos mejoras que introduce.
+
+\textbf{d)} (Tipo parcial)
+Tengo $N = 1000$ muestras de una se\~nal aleatoria.
+Quiero estimar la PSD con baja varianza, pero tambi\'en quiero resoluci\'on
+espectral aceptable.
+Decida una estrategia razonable: ?`cu\'antos bloques uso? ?`de qu\'e tama\~no?
+?`qu\'e ventana? Justifique.
+\end{enun}
+
+% =========================================================
+\section*{Ejercicio 6: A jugar con La440.wav}
+
+\begin{enun}
+Se proveen los archivos \texttt{La440.wav} y \texttt{La440\_delay.wav}.
+La idea es que pruebe distintas ventanas con se\~nales reales y vea c\'omo
+cambia el espectro.
+
+\textbf{a)} Cargue \texttt{La440.wav} y graf\'iquelo en el dominio del tiempo
+y en frecuencia (con ventana rectangular).
+?`Aparece el pico esperado en 440~Hz? ?`Aparecen arm\'onicos?
+
+\textbf{b)} Habilite en el c\'odigo las cinco ventanas (Rectangular, Hann,
+Hamming, Blackman-Harris y Flattop) descomentando las l\'ineas correspondientes.
+Para cada una observe:
+\begin{itemize}[noitemsep]
+  \item ?`Cu\'al le da el pico m\'as estrecho?
+  \item ?`Cu\'al le da la amplitud m\'as estable (m\'as cerca de un valor
+    ``redondo'')?
+  \item ?`Cu\'al deja la base del espectro m\'as ``limpia'' (sin patas
+    grandes)?
+\end{itemize}
+
+\textbf{c)} Simule una segunda se\~nal cercana sumando al audio una
+senoidal de la misma amplitud pero a 450~Hz.
+?`Se pueden distinguir las dos componentes con cada ventana?
+?`Y si pone la segunda a 600~Hz?
+
+\textbf{d)} Repita el an\'alisis con \texttt{La440\_delay.wav}.
+?`Se nota la diferencia mirando el m\'odulo del espectro?
+?`Por qu\'e?
+\end{enun}
+
+\begin{lstlisting}[style=pystyle, caption={NotaMusical\_ventanas.py}]
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.io import wavfile
+import scipy.signal.windows as spsw
+
+# --- Leer WAV ---
+fs, data = wavfile.read("La440.wav")
+
+# A mono si viene estereo
+if data.ndim == 2:
+    data = data.mean(axis=1)
+
+# A float y quitar DC
+x = data.astype(np.float64)
+x = x - x.mean()
+
+N = len(x)
+Ts = 1.0 / fs
+
+# --- Ventanas ---
+ventanas = {
+    # "Rectangular": np.ones(N),
+    "Hann": spsw.hann(N, sym=False),
+    # "Hamming": spsw.hamming(N, sym=False),
+    # "Blackman-Harris": spsw.blackmanharris(N, sym=False),
+    # "Flattop": spsw.flattop(N, sym=False),
+}
+
+# --- Eje de frecuencias (unilateral) ---
+freqs = np.fft.rfftfreq(N, d=Ts)
+
+# --- Graficar las ventanas en el tiempo ---
+tt = np.arange(N) * Ts
+plt.figure(figsize=(9,4))
+for nombre, w in ventanas.items():
+    plt.plot(tt, w, label=nombre, linewidth=1)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("w[n]")
+plt.title("Ventanas en el dominio del tiempo")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+
+# --- FFT por ventana (con correccion CG) y graficos separados ---
+for nombre, w in ventanas.items():
+    # Coherent Gain (ganancia a una senoidal "bin-centered")
+    CG = w.mean()  # = sum(w)/N
+
+    xw = x * w
+    X = np.fft.rfft(xw) / (N * CG)  # corregimos por N y CG para comparar amplitudes
+    mag = np.abs(X)
+
+    f0_est = freqs[np.argmax(mag)]
+
+    plt.figure(figsize=(9,4))
+    plt.plot(freqs, mag, label=f"{nombre} (pico ~ {f0_est:.2f} Hz)")
+    plt.xlim(0, 1000)  # enfocamos cerca de 440 Hz; cambia si queres ver mas
+    plt.xlabel("Frecuencia [Hz]")
+    plt.ylabel("|X(f)| (u.a.)")
+    plt.title(f"Espectro con ventana {nombre}")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+
+# --- (Opcional) Respuesta en frecuencia de las ventanas ---
+# Muestra lobulos laterales y ancho del lobulo principal (normalizado a 0 dB en DC)
+zp = 16 * N  # zero-padding para ver bien la forma
+freqs_win = np.fft.rfftfreq(zp, d=Ts)
+plt.figure(figsize=(9,5))
+for nombre, w in ventanas.items():
+    W = np.fft.rfft(w, n=zp)
+    # Normalizamos a 0 dB en DC (|W[0]| = sum(w))
+    W_db = 20*np.log10(np.maximum(np.abs(W) / (np.abs(W[0]) + 1e-12), 1e-12))
+    plt.plot(freqs_win, W_db, label=nombre, linewidth=1)
+plt.xlim(0, 2000)  # para comparar alrededor de 0-2 kHz
+plt.ylim(-120, 3)
+plt.xlabel("Frecuencia [Hz]")
+plt.ylabel("|W(f)| [dB] (normalizado a 0 dB)")
+plt.title("Respuesta en frecuencia de las ventanas (dB)")
+plt.grid(True, which="both", axis="both")
+plt.legend()
+plt.tight_layout()
+
+plt.show()
+\end{lstlisting}
+
+\end{document}
